@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>數光群島｜五年級數學冒險</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Huninn&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#4a3a2c; --ink-soft:#7a6652; --paper:#fffaf0; --paper-2:#fff3dc; --line:#ead9b8;
+    --sea:#8fd6e4; --teal:#2f9fb3; --teal-d:#1f7d8f; --coral:#ef7a5b; --gold:#f2b233;
+    --font:"Huninn","PingFang TC","Noto Sans TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--sea);font-family:var(--font);color:var(--ink);-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+  button{font-family:inherit;cursor:pointer}
+  #stage{position:fixed;inset:0;transition:opacity .45s ease, transform .45s ease}
+  #stage.fade{opacity:0;transform:scale(1.06)}
+  #world{width:100%;height:100%;display:block;font-family:var(--font);touch-action:manipulation}
+  #world [data-act]{cursor:pointer}
+
+  /* ---------- 上方資訊列 ---------- */
+  .hud{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;pointer-events:none;gap:10px}
+  .hud > *{pointer-events:auto}
+  .brand{display:flex;align-items:center;gap:10px;background:var(--paper);border:3px solid var(--line);border-radius:18px;padding:6px 14px 6px 8px;box-shadow:0 4px 0 rgba(74,58,44,.12)}
+  .brand .logo{width:34px;height:34px}
+  .brand b{font-size:20px;letter-spacing:2px}
+  .brand small{display:block;font-size:12px;color:var(--ink-soft);letter-spacing:1px}
+  .hud-right{display:flex;gap:8px;align-items:center}
+  .pill{background:var(--paper);border:3px solid var(--line);border-radius:999px;padding:7px 14px;font-size:16px;color:var(--ink);box-shadow:0 4px 0 rgba(74,58,44,.12);display:flex;align-items:center;gap:6px;white-space:nowrap}
+  button.pill:hover{background:#fff}
+  button.pill:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(74,58,44,.12)}
+  .pill .star{color:var(--gold);font-size:18px}
+  #crumb{display:none}
+  #crumb.on{display:flex}
+
+  #hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:rgba(255,250,240,.92);border:3px solid var(--line);border-radius:999px;padding:8px 18px;font-size:15px;color:var(--ink-soft);white-space:nowrap;pointer-events:none;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+  #backBtn{position:fixed;left:16px;bottom:16px;display:none}
+  #backBtn.on{display:flex}
+
+  #toast{position:fixed;top:78px;left:50%;transform:translate(-50%,-20px);background:var(--ink);color:#fff;padding:10px 20px;border-radius:999px;font-size:16px;opacity:0;transition:.3s;pointer-events:none;z-index:60}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- 覆蓋視窗 ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(40,70,90,.45);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
+  .overlay.on{display:flex}
+  .card{background:var(--paper);border:4px solid var(--line);border-radius:26px;box-shadow:0 10px 0 rgba(74,58,44,.15);max-width:860px;width:100%;max-height:calc(100vh - 32px);overflow:auto;padding:18px 24px}
+  .card h2{margin:0 0 4px;font-size:26px;letter-spacing:1px}
+  .card .sub{margin:0 0 16px;color:var(--ink-soft);font-size:15px}
+  .btn{border:none;border-radius:16px;padding:12px 22px;font-size:18px;background:var(--teal);color:#fff;box-shadow:0 5px 0 var(--teal-d)}
+  .btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--teal-d)}
+  .btn.coral{background:var(--coral);box-shadow:0 5px 0 #c95a3d}
+  .btn.ghost{background:var(--paper-2);color:var(--ink);box-shadow:0 5px 0 var(--line)}
+  .btn:disabled{opacity:.5}
+
+  /* 登入 */
+  .login-hero{text-align:center;margin-bottom:10px}
+  .login-hero svg{width:180px;height:auto}
+  .login-hero h1{margin:0;font-size:40px;letter-spacing:6px}
+  .seats{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:10px;margin:14px 0}
+  .seat{border:3px solid var(--line);background:#fff;border-radius:16px;font-size:22px;padding:8px 2px;color:var(--ink);line-height:1.15}
+  .seat small{display:block;font-size:12px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seat:hover{border-color:var(--teal)}
+  .seat.has{background:#e9f7f0;border-color:#9bd4b6}
+  .login-foot{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+  /* 造型 */
+  .creator{display:grid;grid-template-columns:240px 1fr;gap:20px}
+  .preview{background:linear-gradient(#cfeef5,#a8e0ea);border-radius:20px;display:flex;align-items:center;justify-content:center;min-height:200px}
+  .opt-title{font-size:15px;margin:8px 0 5px;color:var(--ink-soft)}
+  .styles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .style-tile{border:3px solid var(--line);background:#fff;border-radius:14px;padding:4px 0 6px;font-size:14px;color:var(--ink)}
+  .style-tile.on,.swatch.on,.chip.on{border-color:var(--teal);box-shadow:0 0 0 3px rgba(47,159,179,.25)}
+  .style-tile svg{width:62px;height:68px;display:block;margin:0 auto}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap}
+  .swatch{width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px var(--line)}
+  .chip{border:3px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:15px;color:var(--ink)}
+  @media (max-width:640px){.creator{grid-template-columns:1fr}.styles{grid-template-columns:repeat(4,1fr)}}
+
+  /* 對話框 */
+  #dialog{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);width:min(880px,calc(100vw - 24px));display:none;z-index:30}
+  #dialog.on{display:block;animation:pop .25s ease}
+  @keyframes pop{from{transform:translate(-50%,20px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+  .dlg{background:var(--paper);border:4px solid var(--line);border-radius:24px;box-shadow:0 8px 0 rgba(74,58,44,.15);display:grid;grid-template-columns:120px 1fr;gap:14px;padding:14px 16px 16px}
+  .dlg-portrait{background:linear-gradient(#d9f2f7,#b6e5ee);border-radius:18px;display:flex;align-items:flex-end;justify-content:center;height:130px;position:relative;overflow:hidden}
+  .dlg-portrait svg{width:110px;height:130px}
+  .dlg-name{display:flex;align-items:baseline;gap:8px;margin:2px 0 6px}
+  .dlg-name b{font-size:22px}
+  .dlg-name span{font-size:13px;background:var(--paper-2);border:2px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--ink-soft)}
+  .dlg-text{font-size:18px;line-height:1.65;min-height:52px;white-space:pre-line}
+  .dlg-opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .dlg-opts button{border:3px solid var(--line);background:#fff;border-radius:14px;padding:7px 12px;font-size:15px;color:var(--ink)}
+  .dlg-opts button:hover{border-color:var(--teal)}
+  .dlg-opts button.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+  .dlg-ask{display:flex;gap:8px;margin-top:10px}
+  .dlg-ask input{flex:1;border:3px solid var(--line);border-radius:14px;padding:8px 12px;font-size:16px;font-family:inherit;color:var(--ink);background:#fff;user-select:text;-webkit-user-select:text}
+  .dlg-ask input:focus{outline:none;border-color:var(--teal)}
+  .dlg-close{position:absolute;right:14px;top:10px;border:none;background:none;font-size:26px;color:var(--ink-soft)}
+  @media (max-width:640px){.dlg{grid-template-columns:72px 1fr}.dlg-portrait{height:86px}.dlg-portrait svg{width:72px;height:86px}.dlg-text{font-size:16px}}
+
+  /* 遊戲視窗 */
+  #gameModal .card{max-width:min(1200px,100%);height:calc(100vh - 32px);display:flex;flex-direction:column;padding:12px 14px}
+  .game-head{display:flex;align-items:center;gap:12px;padding:2px 4px 10px}
+  .game-head b{font-size:20px}
+  .game-head .tag{font-size:13px;background:var(--paper-2);border:2px solid var(--line);border-radius:999px;padding:2px 10px;color:var(--ink-soft)}
+  .game-head .sp{flex:1}
+  .game-body{flex:1;border-radius:16px;overflow:hidden;background:#fff;border:3px solid var(--line);position:relative}
+  .game-body iframe{width:100%;height:100%;border:0;display:block}
+  .game-empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;gap:12px;font-size:18px;color:var(--ink-soft)}
+  .game-foot{display:flex;align-items:center;gap:12px;padding:10px 4px 2px;flex-wrap:wrap}
+  .game-foot a{color:var(--teal-d);font-size:14px}
+  .done-badge{color:#2f8f5a;font-size:16px}
+
+  /* 收集冊 */
+  .stars-row{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
+  .star-slot{background:#fff;border:3px solid var(--line);border-radius:16px;text-align:center;padding:8px 4px;font-size:14px}
+  .star-slot .s{font-size:28px;color:#cfc6b6}
+  .star-slot.lit{background:#fff8d9;border-color:#f2d27a}
+  .star-slot.lit .s{color:var(--gold)}
+  .rewards{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+  .reward{background:#fff;border:3px solid var(--line);border-radius:16px;padding:6px;text-align:center;font-size:14px;position:relative;color:var(--ink)}
+  .reward svg{width:100%;height:84px;display:block}
+  .reward.locked{opacity:.55}
+  .reward.locked::after{content:attr(data-need);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ink);background:rgba(255,250,240,.65);border-radius:13px}
+  .reward.on{border-color:var(--teal);background:#eaf8fa}
+  .reward small{display:block;color:var(--ink-soft);font-size:12px}
+
+  /* 慶祝 */
+  #celebrate .card{text-align:center;max-width:520px}
+  .big-star{font-size:110px;line-height:1;color:var(--gold);text-shadow:0 6px 0 #e0a417;animation:spinIn .9s ease}
+  @keyframes spinIn{from{transform:scale(.2) rotate(-180deg);opacity:0}to{transform:none;opacity:1}}
+
+  /* ---------- SVG 動畫 ---------- */
+  #world .spin,#world .spin-rev,#world .spin-slow{transform-box:fill-box;transform-origin:center}
+  @media (prefers-reduced-motion:no-preference){
+    #world .spin{animation:spin 9s linear infinite}
+    #world .spin-rev{animation:spin 6s linear infinite reverse}
+    #world .spin-slow{animation:spin 14s linear infinite}
+    #world .glow{animation:glow 2.4s ease-in-out infinite}
+    #world .beam{animation:beam 3s ease-in-out infinite}
+    #world .fog-drift{animation:drift 7s ease-in-out infinite alternate}
+    #world .boat-rock{transform-box:fill-box;transform-origin:50% 100%;animation:rock 3s ease-in-out infinite}
+    #world .walking .body-bob{animation:bob .32s ease-in-out infinite}
+    #world .idle .body-bob{animation:breathe 2.6s ease-in-out infinite}
+    #world .wave-flag{transform-box:fill-box;transform-origin:0 50%;animation:flag 1.4s ease-in-out infinite}
+    #world .wing{transform-box:fill-box;transform-origin:100% 60%;animation:flap .35s ease-in-out infinite}
+    #world .smoke{animation:smoke 4s ease-in-out infinite}
+    #world .twinkle{animation:glow 1.8s ease-in-out infinite}
+    #world .twinkle.d2{animation-delay:.9s}
+    #world .waves{animation:waves 6s ease-in-out infinite alternate}
+    #world .tilt{transform-box:fill-box;transform-origin:center;animation:tilt 4s ease-in-out infinite}
+    #world .bee{animation:bee 3s ease-in-out infinite}
+    #world .bubble-bob{animation:bubble 1.2s ease-in-out infinite}
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes glow{0%,100%{opacity:.35}50%{opacity:.9}}
+  @keyframes beam{0%,100%{opacity:.5}50%{opacity:1}}
+  @keyframes drift{from{transform:translateX(-10px)}to{transform:translateX(10px)}}
+  @keyframes rock{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+  @keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-1px)}}
+  @keyframes flag{0%,100%{transform:skewY(0)}50%{transform:skewY(-10deg)}}
+  @keyframes flap{0%,100%{transform:rotate(0)}50%{transform:rotate(-30deg)}}
+  @keyframes smoke{0%{transform:translateY(4px);opacity:.6}50%{opacity:1}100%{transform:translateY(-8px);opacity:.6}}
+  @keyframes waves{from{transform:translateX(-14px)}to{transform:translateX(14px)}}
+  @keyframes tilt{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+  @keyframes bee{0%,100%{transform:translate(0,0)}25%{transform:translate(-14px,-6px)}50%{transform:translate(-4px,6px)}75%{transform:translate(10px,-4px)}}
+  @keyframes bubble{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  #world .fog{transition:opacity 1.2s ease}
+
+  /* ---------- 小螢幕 ---------- */
+  .brand,.pill{white-space:nowrap}
+  @media (max-width:760px){
+    .hud{padding:8px}
+    .brand small{display:none}
+    .brand b{font-size:16px;letter-spacing:1px}
+    .brand .logo{width:26px;height:26px}
+    .pill{font-size:13px;padding:5px 9px;border-width:2px}
+    #crumb{display:none !important}
+    #hint{font-size:13px;bottom:8px}
+  }
+  #rotate{display:none}
+
+  /* ---------- 螢幕方向鍵 ---------- */
+  #dpad{position:fixed;right:16px;bottom:16px;width:156px;height:156px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4px;z-index:20;touch-action:none}
+  #dpad button{border:3px solid var(--line);background:rgba(255,250,240,.92);border-radius:14px;font-size:20px;color:var(--ink);box-shadow:0 4px 0 rgba(74,58,44,.12);touch-action:none;-webkit-user-select:none;user-select:none}
+  #dpad button:active,#dpad button.on{background:#e3f4f7;border-color:var(--teal);transform:translateY(2px);box-shadow:0 2px 0 rgba(74,58,44,.12)}
+  #dpad [data-dir="u"]{grid-column:2;grid-row:1}
+  #dpad [data-dir="l"]{grid-column:1;grid-row:2}
+  #dpad #dpadOk{grid-column:2;grid-row:2;font-size:14px;background:var(--teal);color:#fff;border-color:var(--teal-d)}
+  #dpad [data-dir="r"]{grid-column:3;grid-row:2}
+  #dpad [data-dir="d"]{grid-column:2;grid-row:3}
+  body.busy #dpad,body.nologin #dpad{display:none}
+  @media (max-width:760px){#dpad{width:126px;height:126px;right:8px;bottom:44px}}
+  @media (orientation:portrait) and (max-width:900px){
+    #rotate.show{display:flex}
+  }
+  #world .fog.clear{opacity:0}
+</style>
+</head>
+<body class="nologin">
+
+<div id="stage"><svg id="world" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid meet" role="application" aria-label="數光群島地圖"></svg></div>
+
+<header class="hud">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="#8fd6e4"/><ellipse cx="20" cy="27" rx="14" ry="6" fill="#f6e2ad"/><ellipse cx="20" cy="25" rx="10" ry="4" fill="#8fd47c"/><rect x="17" y="9" width="6" height="15" rx="2" fill="#fff"/><rect x="17" y="13" width="6" height="4" fill="#ef5f57"/><circle cx="20" cy="9" r="4" fill="#ffd34d"/></svg>
+    <div><b id="siteTitle">數光群島</b><small id="siteSub"></small></div>
+  </div>
+  <div class="pill" id="crumb"></div>
+  <div class="hud-right">
+    <div class="pill" title="已收集的星光"><span class="star">★</span><span id="starCount">0 / 10</span></div>
+    <button class="pill" id="bookBtn">📖 收集冊</button>
+    <button class="pill" id="seatBtn">👤 <span id="seatLabel">登入</span></button>
+  </div>
+</header>
+
+<button class="pill" id="backBtn">⛵ 回到海上</button>
+<div id="hint"></div>
+<div id="dpad" aria-label="方向鍵">
+  <button data-dir="u" aria-label="上">▲</button>
+  <button data-dir="l" aria-label="左">◀</button>
+  <button id="dpadOk" aria-label="確定">確定</button>
+  <button data-dir="r" aria-label="右">▶</button>
+  <button data-dir="d" aria-label="下">▼</button>
+</div>
+<div id="toast"></div>
+
+<!-- 直式提醒 -->
+<div class="overlay show" id="rotate" style="z-index:80">
+  <div class="card" style="text-align:center;max-width:360px">
+    <div style="font-size:64px">📱↻</div>
+    <h2>把裝置轉成橫的吧！</h2>
+    <p class="sub">數光群島橫向畫面最好玩喔。</p>
+    <button class="btn" onclick="this.closest('#rotate').classList.remove('show')">直接繼續</button>
+  </div>
+</div>
+
+<!-- 登入 -->
+<div class="overlay" id="login">
+  <div class="card">
+    <div class="login-hero">
+      <svg viewBox="0 0 180 90" aria-hidden="true"><ellipse cx="90" cy="70" rx="80" ry="16" fill="#8fd6e4"/><ellipse cx="90" cy="64" rx="56" ry="14" fill="#d9a16a"/><ellipse cx="90" cy="58" rx="56" ry="14" fill="#f6e2ad"/><ellipse cx="88" cy="55" rx="44" ry="10" fill="#8fd47c"/><rect x="80" y="14" width="16" height="40" rx="3" fill="#fff"/><rect x="80" y="26" width="16" height="9" fill="#ef5f57"/><rect x="78" y="8" width="20" height="6" rx="2" fill="#3f4a5a"/><circle cx="88" cy="6" r="6" fill="#ffd34d"/><path d="M88,6 L20,-6 L20,18Z M88,6 L156,-6 L156,18Z" fill="#fff3a6" opacity=".6"/></svg>
+      <h1 id="loginTitle">數光群島</h1>
+      <p class="sub" id="loginSub"></p>
+    </div>
+    <div class="opt-title">請點選你的座號</div>
+    <div class="seats" id="seats"></div>
+    <div class="login-foot">
+      <button class="btn coral" id="classMode">👩‍🏫 全班探險隊（老師投影）</button>
+    </div>
+  </div>
+</div>
+
+<!-- 造型 -->
+<div class="overlay" id="creator">
+  <div class="card">
+    <h2>建立你的航海士（<span id="creatorSeat"></span>）</h2>
+    <p class="sub">造型之後可以在「收集冊」隨時更換喔！</p>
+<div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+    <div id="nameRow" style="flex:1;min-width:240px">
+      <div class="opt-title">你的名字</div>
+      <input id="nameInput" maxlength="8" placeholder="輸入你的名字" autocomplete="off" style="font-family:inherit;font-size:20px;padding:10px 14px;border:3px solid var(--line);border-radius:14px;width:min(320px,100%);color:var(--ink);user-select:text;-webkit-user-select:text">
+      <span id="nameErr" style="color:#d9483b;font-size:15px;margin-left:8px"></span>
+    </div>
+      <button class="btn" id="creatorDone">出發冒險！</button>
+    </div>
+    <div class="creator">
+      <div class="preview"><svg id="previewSvg" viewBox="-60 -110 120 130" width="200" height="220"></svg></div>
+      <div>
+        <div class="opt-title">職業造型</div><div class="styles" id="styleOpts"></div>
+        <div class="opt-title">衣服顏色</div><div class="swatches" id="colorOpts"></div>
+        <div class="opt-title">髮型</div><div class="swatches" id="hairStyleOpts"></div>
+        <div class="opt-title">髮色</div><div class="swatches" id="hairOpts"></div>
+        <div class="opt-title">膚色</div><div class="swatches" id="skinOpts"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 對話 -->
+<div id="dialog">
+  <div class="dlg" style="position:relative">
+    <button class="dlg-close" id="dlgClose" aria-label="關閉">×</button>
+    <div class="dlg-portrait"><svg id="dlgPortrait" viewBox="-40 -80 80 92"></svg></div>
+    <div>
+      <div class="dlg-name"><b id="dlgName"></b><span id="dlgRole"></span></div>
+      <div class="dlg-text" id="dlgText"></div>
+      <div class="dlg-opts" id="dlgOpts"></div>
+      <form class="dlg-ask" id="dlgAsk"><input id="dlgInput" maxlength="120" placeholder="也可以自己打字問問題…" autocomplete="off"><button class="btn" type="submit" style="padding:8px 16px;font-size:16px">問</button></form>
+    </div>
+  </div>
+</div>
+
+<!-- 遊戲 -->
+<div class="overlay" id="gameModal">
+  <div class="card">
+    <div class="game-head"><b id="gameTitle"></b><span class="tag" id="gameTag"></span><span class="sp"></span><button class="btn ghost" id="gameClose" style="padding:8px 16px;font-size:16px">離開 ✕</button></div>
+    <div class="game-body" id="gameBody"></div>
+    <div class="game-foot"><button class="btn coral" id="gameDone">✓ 我完成了！</button><span class="done-badge" id="gameDoneBadge"></span><span style="flex:1"></span><a id="gameNewTab" target="_blank" rel="noopener">遊戲沒有出現？在新分頁開啟</a></div>
+  </div>
+</div>
+
+<!-- 收集冊 -->
+<div class="overlay" id="bookModal">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px"><h2 style="flex:1">📖 我的收集冊</h2><button class="btn ghost" id="bookClose" style="padding:8px 16px;font-size:16px">關閉 ✕</button></div>
+    <p class="sub">每點亮一座島的燈塔就能得到一顆星光，小乖會送你新配件！點一下配件可以穿上或換下。</p>
+    <div class="stars-row" id="starSlots"></div>
+    <div class="opt-title">配件</div>
+    <div class="rewards" id="rewardList"></div>
+    <div style="margin-top:16px;text-align:right"><button class="btn" id="changeLook">更換造型</button></div>
+  </div>
+</div>
+
+<!-- 換人 -->
+<div class="overlay" id="switchModal">
+  <div class="card" style="text-align:center;max-width:420px">
+    <h2>要換另一位同學嗎？</h2>
+    <p class="sub">目前的進度都會保留，下次選同一個座號就能繼續。</p>
+    <div style="display:flex;gap:12px;justify-content:center"><button class="btn ghost" id="switchNo">取消</button><button class="btn" id="switchYes">換人登入</button></div>
+  </div>
+</div>
+
+<!-- 慶祝 -->
+<div class="overlay" id="celebrate">
+  <div class="card">
+    <div class="big-star">★</div>
+    <h2 id="celTitle"></h2>
+    <p class="sub" id="celText" style="font-size:17px;white-space:pre-line"></p>
+    <div id="celReward"></div>
+    <button class="btn" id="celOk" style="margin-top:8px">太棒了！</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/art.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
